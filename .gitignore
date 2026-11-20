@@ -1,0 +1,20 @@
+# Build output
+build/
+*.obj
+*.res
+*.pdb
+*.ilk
+*.exp
+*.lib
+
+# Generated from src/js + src/css by scripts/pack_payloads.ps1
+src/*_payload.h
+
+# Local / editor
+.archive/
+.vscode/
+.vs/
+*.user
+node_modules/
+Thumbs.db
+.DS_Store
