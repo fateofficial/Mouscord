@@ -29,7 +29,7 @@
     Object.freeze({ id: 'dismiss',  label: 'Dismissible', token: 'is:dismiss' })
   ]);
 
-  const DIRECTIVE_KEYS = new Set(['user', 'from', 'age', 'is', 'has']);
+  const DIRECTIVE_KEYS = new Set(['user', 'from', 'id', 'age', 'is', 'has']);
   const VALID_REGEX_FLAGS = /^[dgimsuvy]*$/;
   const URL_RE = /https?:\/\//i;
   const MEDIA_PLACEHOLDER = '(embed / attachment)';
@@ -449,6 +449,18 @@
           continue;
         }
 
+        if (key === 'id') {
+          tokens.push({
+            type: 'id',
+            key,
+            value: val,
+            valueLower: val.toLowerCase(),
+            negated: t.negated,
+            raw: t.raw
+          });
+          continue;
+        }
+
         if (key === 'age') {
           const spec = parseAgeSpec(val);
           if (!spec) {
@@ -619,58 +631,91 @@
       return msgTs;
     }
 
-    for (let i = 0; i < tokens.length; i++) {
-      const tok = tokens[i];
-      let matched = false;
+    function evalBranch(branch) {
+      for (let i = 0; i < branch.length; i++) {
+        const tok = branch[i];
+        let matched = false;
 
-      switch (tok.type) {
-        case 'text': {
-          const needle = tok.valueLower;
-          matched = getTextLower().indexOf(needle) !== -1 || getAuthorLower().indexOf(needle) !== -1;
-          break;
-        }
-        case 'regex': {
-          if (!tok.regex) return false;
-          matched = tok.regex.test(getText()) || tok.regex.test(getAuthor());
-          break;
-        }
-        case 'user': {
-          if (tok.isMe) {
-            matched = msg.isMine === true;
-          } else {
-            matched = getAuthorLower().indexOf(tok.valueLower) !== -1;
+        switch (tok.type) {
+          case 'text': {
+            const needle = tok.valueLower;
+            matched = getTextLower().indexOf(needle) !== -1 || getAuthorLower().indexOf(needle) !== -1;
+            break;
           }
-          break;
-        }
-        case 'age': {
-          if (!tok.spec) return false;
-          const ts = getTs();
-          matched = ts !== null && matchesAgeSpec(now - ts, tok.spec);
-          break;
-        }
-        case 'is': {
-          matched = evalIsFlag(msg, tok.flag);
-          break;
-        }
-        case 'has': {
-          if (tok.flag === 'link') {
-            matched = Boolean(msg.hasLink) || URL_RE.test(getText());
-          } else if (tok.flag === 'media') {
-            matched = Boolean(msg.hasMedia) || getTextLower().indexOf(MEDIA_PLACEHOLDER) !== -1;
-          } else if (tok.flag === 'embed') {
-            matched = Boolean(msg.hasEmbed);
+          case 'regex': {
+            if (!tok.regex) return false;
+            matched = tok.regex.test(getText()) || tok.regex.test(getAuthor());
+            break;
           }
-          break;
+          case 'user': {
+            if (tok.isMe) {
+              matched = msg.isMine === true;
+            } else if (tok.valueLower.indexOf(',') !== -1) {
+              const auth = getAuthorLower();
+              const parts = tok.valueLower.split(',').map(s => s.trim()).filter(Boolean);
+              matched = parts.some(p => p === 'me' ? (msg.isMine === true) : (auth.indexOf(p) !== -1));
+            } else {
+              matched = getAuthorLower().indexOf(tok.valueLower) !== -1;
+            }
+            break;
+          }
+          case 'id': {
+            const aid = String(msg.authorId || '').trim();
+            if (!aid) { matched = false; break; }
+            if (tok.valueLower.indexOf(',') !== -1) {
+              const parts = tok.valueLower.split(',').map(s => s.trim()).filter(Boolean);
+              matched = parts.indexOf(aid) !== -1;
+            } else {
+              matched = aid === tok.valueLower;
+            }
+            break;
+          }
+          case 'age': {
+            if (!tok.spec) return false;
+            const ts = getTs();
+            matched = ts !== null && matchesAgeSpec(now - ts, tok.spec);
+            break;
+          }
+          case 'is': {
+            matched = evalIsFlag(msg, tok.flag);
+            break;
+          }
+          case 'has': {
+            if (tok.flag === 'link') {
+              matched = Boolean(msg.hasLink) || URL_RE.test(getText());
+            } else if (tok.flag === 'media') {
+              matched = Boolean(msg.hasMedia) || getTextLower().indexOf(MEDIA_PLACEHOLDER) !== -1;
+            } else if (tok.flag === 'embed') {
+              matched = Boolean(msg.hasEmbed);
+            }
+            break;
+          }
+          default:
+            return false;
         }
-        default:
-          return false;
+
+        if (tok.negated) matched = !matched;
+        if (!matched) return false;
       }
-
-      if (tok.negated) matched = !matched;
-      if (!matched) return false;
+      return true;
     }
 
-    return true;
+    // Split on uppercase OR / || so "from:bot1,bot3 OR /(spam|nitro)/i" works as union
+    const branches = [[]];
+    for (let i = 0; i < tokens.length; i++) {
+      const t = tokens[i];
+      if (t.type === 'text' && !t.negated && (t.raw === 'OR' || t.raw === '||')) {
+        if (branches[branches.length - 1].length > 0) branches.push([]);
+      } else {
+        branches[branches.length - 1].push(t);
+      }
+    }
+    const nonEmpty = branches.filter(b => b.length > 0);
+    if (nonEmpty.length === 0) return true;
+    for (let b = 0; b < nonEmpty.length; b++) {
+      if (evalBranch(nonEmpty[b])) return true;
+    }
+    return false;
   }
 
   function filterMessages(messages, rawQuery, nowMs) {

@@ -356,63 +356,91 @@ private:
                 float4 col = float4(0, 0, 0, 0);
                 float2 p = i.px;
 
-                // 1. 5-segment Verlet tail
+                // 1. 5-segment Verlet tail (smoothly tapered, zero visible joint steps)
                 float2 t[6] = { uTail01.xy, uTail01.zw, uTail23.xy, uTail23.zw, uTail45.xy, uTail45.zw };
                 float td = 999.0;
                 [unroll] for (int k = 0; k < 5; k++) {
-                    float w = lerp(2.2, 0.9, k / 5.0);
-                    td = min(td, sdSeg(p, t[k], t[k + 1]) - w);
+                    float2 pa = p - t[k], ba = t[k + 1] - t[k];
+                    float h = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-4), 0.0, 1.0);
+                    float w = lerp(1.7, 0.70, (k + h) / 5.0);
+                    td = min(td, length(pa - ba * h) - w);
                 }
-                blendOver(col, float3(0.95, 0.65, 0.72), smoothstep(1.2, -0.5, td));
+                blendOver(col, float3(0.32, 0.22, 0.26), smoothstep(0.6, -0.3, td - 0.9));
+                blendOver(col, float3(0.96, 0.64, 0.74), smoothstep(0.6, -0.3, td));
 
-                // Local mouse coords (flipped by facing, squished by boop)
+                // Local mouse coords (flipped by facing, squash & stretch on boop)
                 float2 lp = p - uPos;
                 lp.x *= uFacing;
-                float sq = 1.0 + uBoop * 0.14;
+                float sq = 1.0 + uBoop * 0.16;
                 lp.x /= sq;
                 lp.y *= sq;
 
-                // 2. Soft drop shadow
-                float sh = sdEllipse(lp - float2(0.0, 10.0), float2(14.0, 4.5));
-                blendOver(col, float3(0.0, 0.0, 0.0), smoothstep(3.0, -2.0, sh) * 0.28);
+                // 2. Soft ground shadow
+                float sh = sdEllipse(lp - float2(0.0, 9.5), float2(13.6, 4.0));
+                blendOver(col, float3(0.0, 0.0, 0.0), smoothstep(2.5, -1.5, sh) * 0.26);
 
                 // 3. Back ear
-                float earB = length(lp - float2(-4.0, -10.5)) - 6.8;
-                blendOver(col, float3(0.92, 0.92, 0.96), smoothstep(1.0, -0.5, earB));
-                float earBi = length(lp - float2(-3.5, -10.2)) - 4.0;
-                blendOver(col, float3(0.98, 0.72, 0.78), smoothstep(1.0, -0.5, earBi));
+                float earB = length(lp - float2(-1.6, -11.8)) - 5.4;
+                blendOver(col, float3(0.22, 0.24, 0.30), smoothstep(0.6, -0.3, earB - 1.1));
+                blendOver(col, float3(0.90, 0.92, 0.96), smoothstep(0.6, -0.3, earB));
+                float earBi = length(lp - float2(-1.2, -11.5)) - 3.1;
+                blendOver(col, float3(0.97, 0.70, 0.78), smoothstep(0.6, -0.3, earBi));
 
-                // 4. Chubby white mouse body
-                float body = sdEllipse(lp - float2(0.0, 1.5), float2(14.5, 10.5));
-                blendOver(col, float3(0.97, 0.97, 0.99), smoothstep(1.0, -0.5, body));
+                // 4. White mouse body (outlined + soft belly shading)
+                float body = sdEllipse(lp - float2(0.5, 1.5), float2(13.6, 9.0));
+                blendOver(col, float3(0.22, 0.24, 0.30), smoothstep(0.6, -0.3, body - 1.2));
+                float3 bodyCol = lerp(float3(0.99, 0.99, 1.0), float3(0.86, 0.88, 0.94), saturate((lp.y + 4.0) / 14.0));
+                blendOver(col, bodyCol, smoothstep(0.6, -0.3, body));
 
-                // 5. Front ear
-                float earF = length(lp - float2(4.0, -10.0)) - 7.2;
-                blendOver(col, float3(0.95, 0.95, 0.98), smoothstep(1.0, -0.5, earF));
-                float earFi = length(lp - float2(4.5, -9.8)) - 4.2;
-                blendOver(col, float3(0.99, 0.74, 0.80), smoothstep(1.0, -0.5, earFi));
-
-                // 6. Eye + specular highlight
-                float eye = length(lp - float2(7.5, -1.5)) - 2.3;
-                blendOver(col, float3(0.10, 0.10, 0.14), smoothstep(0.8, -0.4, eye));
-                float spec = length(lp - float2(8.2, -2.2)) - 0.8;
-                blendOver(col, float3(1.0, 1.0, 1.0), smoothstep(0.5, -0.3, spec));
-
-                // 7. Cute pink nose
-                float nose = length(lp - float2(14.2, 1.0)) - 2.3;
-                blendOver(col, float3(0.98, 0.56, 0.66), smoothstep(0.8, -0.4, nose));
-
-                // 8. Santa hat (optional)
+                // 5. Santa hat (slightly tilted to hug head, cone clipped cleanly at brim)
                 if (uHat > 0.5) {
-                    float bob = sin(uTime * 5.0) * 1.2;
-                    float2 hp = lp - float2(-1.0, -10.0);
-                    float hatCone = sdSeg(hp, float2(-5.0, 0.0), float2(-9.0 + bob, -13.0)) - lerp(5.5, 1.5, saturate(-hp.y / 13.0));
-                    blendOver(col, float3(0.88, 0.14, 0.20), smoothstep(1.0, -0.5, hatCone));
-                    float brim = sdSeg(hp, float2(-7.5, 0.5), float2(4.5, -1.0)) - 2.4;
-                    blendOver(col, float3(0.98, 0.98, 1.0), smoothstep(1.0, -0.5, brim));
-                    float pom = length(hp - float2(-9.5 + bob, -13.5)) - 3.0;
-                    blendOver(col, float3(0.99, 0.99, 1.0), smoothstep(1.0, -0.5, pom));
+                    float bob = sin(uTime * 5.0) * 1.1;
+                    float2 hp0 = lp - float2(5.6, -8.3);
+                    float ca = 0.985, sa = -0.174; // ~-10 deg natural tilt
+                    float2 hp = float2(hp0.x * ca - hp0.y * sa, hp0.x * sa + hp0.y * ca);
+                    float hatCone = max(sdSeg(hp, float2(-3.2, -1.2), float2(-9.0 + bob, -14.0)) - lerp(4.6, 1.4, saturate(-hp.y / 12.0)), hp.y - 0.5);
+                    blendOver(col, float3(0.32, 0.08, 0.12), smoothstep(0.6, -0.3, hatCone - 1.1));
+                    float3 redCol = lerp(float3(0.95, 0.22, 0.28), float3(0.74, 0.10, 0.16), saturate((hp.x + 8.0) / 14.0));
+                    blendOver(col, redCol, smoothstep(0.6, -0.3, hatCone));
+                    float brim = sdSeg(hp, float2(-7.0, 0.4), float2(3.5, -0.8)) - 2.3;
+                    blendOver(col, float3(0.25, 0.27, 0.33), smoothstep(0.6, -0.3, brim - 1.0));
+                    blendOver(col, float3(0.99, 0.99, 1.0), smoothstep(0.6, -0.3, brim));
+                    float pom = length(hp - float2(-9.5 + bob, -14.5)) - 2.8;
+                    blendOver(col, float3(0.25, 0.27, 0.33), smoothstep(0.6, -0.3, pom - 1.0));
+                    blendOver(col, float3(0.99, 0.99, 1.0), smoothstep(0.6, -0.3, pom));
                 }
+
+                // 6. Front ear (in front of hat, base clipped cleanly into head)
+                float earClip = lp.y - (lp.x + 4.8) * (-0.16) + 5.4;
+                float earF = max(length(lp - float2(-4.8, -8.2)) - 6.4, earClip);
+                blendOver(col, float3(0.22, 0.24, 0.30), smoothstep(0.6, -0.3, earF - 1.1));
+                blendOver(col, float3(0.97, 0.98, 1.0), smoothstep(0.6, -0.3, earF));
+                float earFi = max(length(lp - float2(-4.3, -8.0)) - 3.7, earClip + 0.6);
+                blendOver(col, float3(0.99, 0.72, 0.80), smoothstep(0.6, -0.3, earFi));
+
+                // 7. Soft pink cheek blush
+                float blush = length(lp - float2(7.2, 2.2)) - 2.6;
+                blendOver(col, float3(1.0, 0.66, 0.76), smoothstep(2.0, -1.0, blush) * 0.45);
+
+                // 8. Glossy dark eye + double catchlight
+                float eye = length(lp - float2(7.6, -1.6)) - 2.3;
+                blendOver(col, float3(0.09, 0.10, 0.14), smoothstep(0.5, -0.3, eye));
+                float spec1 = length(lp - float2(8.3, -2.3)) - 0.85;
+                blendOver(col, float3(1.0, 1.0, 1.0), smoothstep(0.4, -0.2, spec1));
+                float spec2 = length(lp - float2(6.9, -0.8)) - 0.4;
+                blendOver(col, float3(1.0, 1.0, 1.0), smoothstep(0.3, -0.2, spec2) * 0.7);
+
+                // 9. Upturned pink nose + tiny cute smile + delicate thin whiskers
+                float nose = length(lp - float2(14.6, -0.8)) - 2.2;
+                blendOver(col, float3(0.45, 0.18, 0.26), smoothstep(0.5, -0.3, nose - 0.8));
+                blendOver(col, float3(0.99, 0.56, 0.68), smoothstep(0.5, -0.3, nose));
+                float smile = abs(length(lp - float2(11.6, 1.6)) - 2.1) - 0.35;
+                if (lp.y > 2.4 && lp.x > 10.2 && lp.x < 13.4) {
+                    blendOver(col, float3(0.28, 0.28, 0.34), smoothstep(0.5, -0.2, smile));
+                }
+                float w1 = sdSeg(lp, float2(13.0, 2.0), float2(20.6, 0.5)) - 0.26;
+                float w2 = sdSeg(lp, float2(13.0, 2.9), float2(20.6, 3.6)) - 0.26;
+                blendOver(col, float3(0.50, 0.53, 0.62), smoothstep(0.5, -0.2, min(w1, w2)) * 0.82);
 
                 if (col.a < 0.01) discard;
                 return col;

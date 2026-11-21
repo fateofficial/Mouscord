@@ -682,5 +682,28 @@ test('defensive edge cases never throw and behave predictably', () => {
   assert.equal(filter.matchesMessage(null, 'is:mine', NOW), false);
 });
 
+test('comma-separated multi-user and blacklist combinations work case-insensitively', () => {
+  const { filter } = loadFilter();
+  const botMsgs = [
+    { id: '1', author: 'Bot1', authorId: '1001', text: 'hey lol', isMine: false, hasLink: false },
+    { id: '2', author: 'Bot2', authorId: '1002', text: 'check https://example.com', isMine: false, hasLink: true },
+    { id: '3', author: 'Bot3', authorId: '1003', text: 'IMPORTANT keep this', isMine: false, hasLink: false },
+    { id: '4', author: '1001', authorId: '1004', text: 'lmao done', isMine: false, hasLink: false }
+  ];
+  const ids = (q) => Array.from(filter.filterMessages(botMsgs, q, NOW).items, m => m.id);
+  assert.deepEqual(ids('user:bot1,bot3'), ['1', '3']);
+  assert.deepEqual(ids('from:bot1,bot3'), ['1', '3']);
+  assert.deepEqual(ids('-user:bot2,bot4'), ['1', '3', '4']);
+  assert.deepEqual(ids('-has:link -/important|keep/i'), ['1', '4']);
+  assert.deepEqual(ids('/(lol|lmao)/i'), ['1', '4']);
+  // id: matches strictly by authorId (never fooled by someone setting their display name to "1001")
+  assert.deepEqual(ids('id:1001'), ['1']);
+  assert.deepEqual(ids('id:1001,1003'), ['1', '3']);
+  assert.deepEqual(ids('-id:1002,1004'), ['1', '3']);
+  // OR / || unions branches
+  assert.deepEqual(ids('from:bot1 OR has:link'), ['1', '2']);
+  assert.deepEqual(ids('id:1003 || /(lol|lmao)/i'), ['1', '3', '4']);
+});
+
 console.log(`\nSummary: ${passed} passed, ${failed} failed.`);
 if (failed > 0) process.exit(1);

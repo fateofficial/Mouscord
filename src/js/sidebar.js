@@ -45,17 +45,16 @@
         </div>
       </div>
       <div class="dc-sb-opts-bar">
-        <button class="dc-sb-chip" data-opt="mineOnly" title="Show only your deletable messages">Mine Only: ON</button>
+        <button class="dc-sb-chip" data-opt="newestFirst" title="ON = Newest first, OFF = Oldest first">Newest</button>
+        <button class="dc-sb-chip" data-opt="removeReactions" title="Also remove your reactions on other people's messages during Delete All">Remove Emotes: OFF</button>
+        <button class="dc-sb-chip" data-opt="mouseCursor" title="Animated Mouse companion while deleting">Mouse: ON</button>
         <button class="dc-sb-chip" data-opt="enableVfx" title="Dissolve particles on message delete">Particles: ON</button>
-        <button class="dc-sb-chip" data-opt="mouseCursor" title="Spawn animated mouse cursor while deleting">Mouse Cursor: ON</button>
-        <button class="dc-sb-chip" data-opt="newestFirst" title="Delete direction: ON = Newest first (bottom-up), OFF = Oldest first (top-down)">Newest First: ON</button>
-        <button class="dc-sb-chip" data-opt="removeReactions" title="Also remove all emotes/reactions you placed on other people's messages during Delete All">Remove Emotes: OFF</button>
         <button class="dc-sb-chip fx-preset" title="Cycle dissolve shader theme">FX: Fairy Dust</button>
-        <button class="dc-sb-chip snow-toggle" title="Toggle native GPU overlay snowfall">&#10052; Snow (GPU): OFF</button>
-        <button class="dc-sb-chip test-fx" title="Preview pixel dissolve VFX without deleting">&#10024; Test FX</button>
-        <button class="dc-sb-chip dev-toggle" title="Show/hide developer testing tools">Dev: OFF</button>
-        <button class="dc-sb-chip sim-chat" style="display:none;" title="Inject 30 random local-only back-and-forth test messages (zero network traffic)">+30 Sim Chat</button>
-        <button class="dc-sb-chip sim-clear" style="display:none;" title="Instantly clear all local-only simulated test messages">Clear Sim</button>
+        <button class="dc-sb-chip snow-toggle" title="Toggle native GPU overlay snowfall">&#10052; Snow</button>
+        <button class="dc-sb-chip test-fx" title="Preview dissolve VFX without deleting">&#10024; Test</button>
+        <button class="dc-sb-chip dev-toggle" title="Show/hide developer testing tools">Dev</button>
+        <button class="dc-sb-chip sim-chat" style="display:none;" title="Inject 30 local-only test messages">+30 Sim Chat</button>
+        <button class="dc-sb-chip sim-clear" style="display:none;" title="Clear local-only simulated messages">Clear Sim</button>
         <div class="dc-sb-speed-box">
           <div class="dc-sb-speed-head">
             <span>Pace Rhythm</span>
@@ -71,14 +70,35 @@
       </div>
       <div class="dc-sb-filter-wrap">
         <div class="dc-sb-filter-row">
-          <input class="dc-sb-filter-input" type="text" placeholder="Filter: user:me age:1d-1y /regex/ -word" spellcheck="false" autocomplete="off" />
+          <input class="dc-sb-filter-input" type="text" placeholder="Filter: is:mine user:a,b age:>14d /regex/ -word" title="Available filters (combine any with spaces):
+• is:mine / is:other / is:dismiss
+• user:name or user:bob,alice (comma for multiple)
+• age:<24h / age:>14d / age:1d-1y
+• has:link / has:media / has:embed
+• /regex/i or -/exclude/i (negate)
+• &quot;exact phrase&quot; or -word" spellcheck="false" autocomplete="off" />
           <button class="dc-sb-filter-clear" title="Clear filter">&times;</button>
+          <button class="dc-sb-filter-help" title="Show all filter patterns &amp; examples" style="background:none;border:none;color:#949ba4;font-weight:700;font-size:12px;cursor:pointer;padding:0 6px;">&#9432;</button>
+        </div>
+        <div class="dc-sb-help-box" style="display:none;margin-top:6px;padding:8px 10px;border-radius:8px;background:rgba(18,19,22,0.92);border:1px solid rgba(255,255,255,0.1);font-size:11px;line-height:1.6;color:#b5bac1;">
+          <div style="font-weight:700;color:#f2f3f5;margin-bottom:4px;">Quick Filter Guide <span style="font-weight:400;color:#949ba4;">(combine with spaces)</span></div>
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 8px;align-items:center;">
+            <span class="dc-sb-htag">is:mine</span><span>Only your messages (off = everyone)</span>
+            <span class="dc-sb-htag">from:bob,alice</span><span>Messages by display name(s)</span>
+            <span class="dc-sb-htag">id:123456...</span><span>Exact User ID (click any author name!)</span>
+            <span class="dc-sb-htag">age:&gt;14d</span><span>Older than 14d (or <b>&lt;24h</b>, <b>1d-1y</b>)</span>
+            <span class="dc-sb-htag">has:link</span><span>Has links (or <b>has:media</b>, <b>has:embed</b>)</span>
+            <span class="dc-sb-htag">&quot;exact text&quot;</span><span>Matches an exact phrase</span>
+            <span class="dc-sb-htag">/(a|b)/i</span><span>Matches &quot;a&quot; or &quot;b&quot; (any case)</span>
+            <span class="dc-sb-htag">-filter</span><span><b>Protect / skip</b> (e.g. <b>-has:media</b>, <b>-user:bob</b>)</span>
+          </div>
         </div>
         <div class="dc-sb-filter-err"></div>
         <div class="dc-sb-quick-chips"></div>
       </div>
-      <div class="dc-sb-hint">
+      <div class="dc-sb-hint" style="display:flex;align-items:center;justify-content:space-between;min-height:36px;">
         <span class="dc-sb-stream-status" title="Alt+M: Toggle drawer | Ctrl+A: Select all | Del: Delete selected | Space: Pause/Resume | Shift+Esc: Cancel">Alt+M &bull; Shift+Click &bull; Del</span>
+        <div class="dc-sb-bed-pad" style="width:76px;height:30px;border-radius:8px;" title="Mouscord naps here while idle"></div>
       </div>
       <div class="dc-sb-list"></div>
       <div class="dc-sb-footer">
@@ -187,7 +207,7 @@
   let isOpen = false;
   let messages = [];
   let lastSignature = '';
-  let filterQuery = '';
+  let filterQuery = 'is:mine';
   let activeChannelPath = window.location.pathname;
   const channelSelections = new Map(); // Per-channel selection isolation (no leaking when switching tabs/DMs)
   let selectedIds = new Set();
@@ -391,6 +411,22 @@
     updateFooter();
   }
 
+  function syncMouseBed() {
+    const eng = getEngine();
+    const mouseOn = !!(eng && eng.getSettings && eng.getSettings().mouseCursor);
+    const bedPad = drawer.querySelector('.dc-sb-bed-pad');
+    if (bedPad) bedPad.style.display = mouseOn ? '' : 'none';
+    if (isDeleting) return;
+    if (!isOpen || !mouseOn) { xmasMouse.hide(); return; }
+    requestAnimationFrame(() => {
+      if (isDeleting || !isOpen) return;
+      const r = bedPad ? bedPad.getBoundingClientRect() : null;
+      if (r && r.width > 10 && r.height > 10 && window.__dcMouseCursor && window.__dcMouseCursor.napAt) {
+        window.__dcMouseCursor.napAt(r.left + r.width * 0.5, r.top + r.height * 0.62, bedPad);
+      }
+    });
+  }
+
   function setOpen(open) {
     isOpen = !!open;
     tab.classList.toggle('open', isOpen);
@@ -404,8 +440,11 @@
       if (focusMeta.channelId) {
         startBackgroundHistoryStream(focusMeta.channelId);
       }
+      syncMouseBed();
+      setTimeout(syncMouseBed, 240);
     } else {
       clearChatHighlight();
+      if (!isDeleting) xmasMouse.hide();
     }
   }
 
@@ -454,14 +493,16 @@
     const s = (engine && engine.getSettings)
       ? engine.getSettings()
       : { mineOnly: true, hideDiscordMenu: true, enableVfx: true, mouseCursor: true, speedSlider: 0.55 };
+    const SHORT = { mineOnly: 'Mine', newestFirst: 'Newest', removeReactions: 'Emotes', mouseCursor: 'Mouse', enableVfx: 'Particles' };
     optChips.forEach(chip => {
       const k = chip.dataset.opt;
       const on = !!s[k];
       chip.classList.toggle('on', on);
-      chip.textContent = (OPT_LABELS[k] || k) + ': ' + (on ? 'ON' : 'OFF');
+      chip.textContent = SHORT[k] || OPT_LABELS[k] || k;
     });
     syncFxPresetChip();
     syncSpeedSliderUI();
+    syncMouseBed();
   }
 
   // --- Virtual scroller: DOM node count stays constant regardless of message count ---
@@ -469,6 +510,130 @@
   const VOVERSCAN = 8;
   let vSpacer = null, vWindow = null, vLastStart = -1, vLastEnd = -1, vRaf = 0;
   let shouldScrollBottom = true;
+
+  let activeCtxMenu = null;
+  function closeRowContextMenu() {
+    if (activeCtxMenu) {
+      activeCtxMenu.remove();
+      activeCtxMenu = null;
+    }
+    window.removeEventListener('mousedown', onCtxOutside, true);
+    window.removeEventListener('scroll', closeRowContextMenu, true);
+    window.removeEventListener('resize', closeRowContextMenu);
+  }
+  function onCtxOutside(e) {
+    if (activeCtxMenu && !activeCtxMenu.contains(e.target)) closeRowContextMenu();
+  }
+  function copyToClipboard(text, label) {
+    const str = String(text || '');
+    if (!str) return;
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      navigator.clipboard.writeText(str).then(
+        () => showToast('Copied ' + label, 2000),
+        () => fallbackCopy(str, label)
+      );
+    } else {
+      fallbackCopy(str, label);
+    }
+  }
+  function fallbackCopy(str, label) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = str;
+      ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      showToast('Copied ' + label, 2000);
+    } catch (e) {
+      showToast('Could not copy ' + label, 2400);
+    }
+  }
+  function applyIdFilter(authorId, exclude, isOtherUser) {
+    const flt = getFilter();
+    const prefix = exclude ? '-id:' : 'id:';
+    let nextQ = filterQuery;
+    if (!exclude && isOtherUser && flt && typeof flt.hasTokenInQuery === 'function' && flt.hasTokenInQuery(nextQ, 'is:mine')) {
+      nextQ = flt.toggleTokenInQuery(nextQ, 'is:mine');
+    }
+    const re = exclude ? /(^|\s)-id:([^\s]+)/i : /(^|\s)id:([^\s]+)/i;
+    const m = nextQ.match(re);
+    if (m) {
+      const parts = m[2].split(',').map(s => s.trim()).filter(Boolean);
+      const idx = parts.indexOf(authorId);
+      if (idx >= 0) parts.splice(idx, 1);
+      else parts.push(authorId);
+      const repl = parts.length ? (m[1] + prefix + parts.join(',')) : '';
+      nextQ = nextQ.replace(re, repl).replace(/\s+/g, ' ').trim();
+    } else {
+      nextQ = (nextQ ? (nextQ + ' ') : '') + prefix + authorId;
+    }
+    filterQuery = nextQ;
+    filterInput.value = filterQuery;
+    filterClear.classList.toggle('visible', filterQuery.length > 0);
+    syncQuickChipStates();
+    scanMessages(true);
+    scheduleFilterServerSearch();
+    showToast('Filter: ' + (filterQuery || 'All messages'), 2200);
+  }
+  function openRowContextMenu(e, m, locked, isDismiss) {
+    closeRowContextMenu();
+    const menu = document.createElement('div');
+    menu.className = 'dc-sb-ctx-menu';
+    const addItem = (label, onClick, isDanger) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dc-sb-ctx-item' + (isDanger ? ' danger' : '');
+      btn.textContent = label;
+      btn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        closeRowContextMenu();
+        onClick();
+      });
+      menu.appendChild(btn);
+    };
+    const addSep = () => {
+      const sep = document.createElement('div');
+      sep.className = 'dc-sb-ctx-sep';
+      menu.appendChild(sep);
+    };
+
+    const rawMsgId = String(m.rawId || m.id || '').replace(/^chat-messages-\d+-/, '');
+    if (m.authorId) {
+      addItem('Filter by User (id:' + m.authorId.slice(-4) + ')', () => applyIdFilter(m.authorId, false, !m.isMine));
+      addItem('Exclude User (-id:' + m.authorId.slice(-4) + ')', () => applyIdFilter(m.authorId, true, false));
+      addSep();
+      addItem('Copy User ID', () => copyToClipboard(m.authorId, 'User ID: ' + m.authorId));
+    }
+    if (rawMsgId) {
+      addItem('Copy Message ID', () => copyToClipboard(rawMsgId, 'Message ID'));
+    }
+    if (m.text) {
+      addItem('Copy Message Text', () => copyToClipboard(m.text, 'Message Text'));
+    }
+    addSep();
+    addItem('Jump to Message', () => {
+      const br = getBridge();
+      if (br && typeof br.jumpToMessage === 'function') {
+        br.jumpToMessage(m.channelId || getFocusedTabMeta().channelId, m.rawId || m.id);
+      }
+    });
+    if (!locked && !isDeleting) {
+      addItem(isDismiss ? 'Dismiss Notice' : 'Delete Message', () => runEngineDeletion('selected', [m]), true);
+    }
+
+    document.body.appendChild(menu);
+    const rect = menu.getBoundingClientRect();
+    const left = Math.max(8, Math.min(e.clientX, window.innerWidth - rect.width - 8));
+    const top = Math.max(8, Math.min(e.clientY, window.innerHeight - rect.height - 8));
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+    activeCtxMenu = menu;
+    window.addEventListener('mousedown', onCtxOutside, true);
+    window.addEventListener('scroll', closeRowContextMenu, true);
+    window.addEventListener('resize', closeRowContextMenu);
+  }
 
   function buildVirtualRow(m, idx) {
     const locked = (m.canRemove === false);
@@ -509,6 +674,11 @@
 
     row.addEventListener('mouseenter', () => highlightMessageInChat(m.id));
     row.addEventListener('mouseleave', () => clearChatHighlight());
+    row.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openRowContextMenu(e, m, locked, isDismiss);
+    });
     row.addEventListener('dblclick', (e) => {
       e.preventDefault();
       const br = getBridge();
@@ -691,10 +861,8 @@
         : (focusMeta.label || 'Messages').slice(0, 16);
     }
 
-    // If user explicitly filters by user:/is:other, respect query across raw messages; otherwise apply Mine Only
-    const qLower = (filterQuery || '').toLowerCase();
-    const overridesMine = qLower.indexOf('user:') !== -1 || qLower.indexOf('from:') !== -1 || qLower.indexOf('is:other') !== -1;
-    let pool = (s.mineOnly && !overridesMine) ? raw.filter(m => m.canRemove !== false) : raw;
+    // Filter bar (pre-toggled with is:mine) is the single source of truth for Mine vs All messages
+    let pool = raw;
 
     let next = pool;
     let errText = '';
@@ -770,12 +938,13 @@
     modalMode = 'all';
     pendingDeleteItems = [];
 
-    modalTitle.textContent = 'Delete All Your Messages in Tab?';
-    modalSub.textContent = 'Automatically scrolls up and deletes only your messages while you watch. Other users & bots are ignored.';
+    const focus = getFocusedTabMeta();
+    modalTitle.textContent = 'Delete all your messages in ' + (focus.label || 'this chat') + '?';
+    modalSub.textContent = 'Deletes only your messages in the background while you keep using Discord. Other users and bots are never touched.';
     modalList.classList.add('hidden');
     modalList.innerHTML = '';
     modalNotice.classList.add('visible');
-    modalNotice.textContent = 'Uses Shift+Hover 1-click fast path + adaptive AIMD rate-limit pacing. Press Cancel Deletion anytime.';
+    modalNotice.textContent = 'Safe rate-limit pacing is active. You can pause or cancel at any time.';
 
     confirmBtn.textContent = 'Start Deleting';
     backdrop.classList.add('open');
@@ -888,6 +1057,7 @@
       const allForPop = (engine.getChannelMessages && focusMeta.channelId) ? engine.getChannelMessages(focusMeta.channelId) : messages;
       window.__dcPopoutChat.open(focusMeta.channelId, focusMeta.label, allForPop);
       xmasMouse.show();
+      if (window.__dcMouseCursor && window.__dcMouseCursor.backflip) window.__dcMouseCursor.backflip();
     }
     progFill.style.width = '0%';
     progFill.classList.remove('indeterminate', 'paused');
@@ -914,11 +1084,10 @@
         finalState = await engine.runSelected(items, handleEngineProgress, runOpts);
       }
     } finally {
-      if (finalState && !finalState.stopped && finalState.deleted > 0 && window.__dcMouseCursor && window.__dcMouseCursor.victoryDance && window.__dcPopoutChat && window.__dcPopoutChat.isOpen && window.__dcPopoutChat.isOpen()) {
+      if (finalState && !finalState.stopped && finalState.deleted > 0 && window.__dcMouseCursor && window.__dcMouseCursor.victoryDance) {
         const closeBtn = document.querySelector('#dc-mouse-chat-window .dc-mc-min');
         try { await window.__dcMouseCursor.victoryDance(closeBtn); } catch (e) {}
       }
-      xmasMouse.hide();
       if (window.__dcPopoutChat && typeof window.__dcPopoutChat.close === 'function') {
         window.__dcPopoutChat.close();
       }
@@ -931,6 +1100,7 @@
       syncLiveBarsVisibility();
       scanMessages(true);
       if (isOpen) renderList();
+      setTimeout(() => syncMouseBed(), 50);
     }
 
     if (finalState) {
@@ -969,6 +1139,7 @@
   optsBtn.addEventListener('click', () => {
     const open = !optsBar.classList.contains('open');
     optsBar.classList.toggle('open', open);
+    syncMouseBed();
     optsBtn.classList.toggle('active', open);
     if (open) syncOptionChips();
   });
@@ -1017,9 +1188,10 @@
     devToggleBtn.addEventListener('click', () => {
       devOn = !devOn;
       devToggleBtn.classList.toggle('on', devOn);
-      devToggleBtn.textContent = 'Dev: ' + (devOn ? 'ON' : 'OFF');
+      devToggleBtn.textContent = 'Dev';
       if (simChatBtn) simChatBtn.style.display = devOn ? '' : 'none';
       if (simClearBtn) simClearBtn.style.display = devOn ? '' : 'none';
+      syncMouseBed();
     });
   }
 
@@ -1094,7 +1266,7 @@
     const syncSnow = () => {
       const on = !!(window.__dcSnowShader && window.__dcSnowShader.isEnabled && window.__dcSnowShader.isEnabled());
       snowBtn.classList.toggle('on', on);
-      snowBtn.textContent = '\u2744 Snow' + (typeof window.__dcNativeHost === 'function' ? ' (GPU)' : '') + ': ' + (on ? 'ON' : 'OFF');
+      snowBtn.textContent = '\u2744 Snow';
     };
     syncSnow();
     snowBtn.addEventListener('click', () => {
@@ -1329,6 +1501,18 @@
   }
 
   syncOptionChips();
+  const filterHelpBtn = drawer.querySelector('.dc-sb-filter-help');
+  const filterHelpBox = drawer.querySelector('.dc-sb-help-box');
+  if (filterHelpBtn && filterHelpBox) {
+    filterHelpBtn.addEventListener('click', () => {
+      const show = filterHelpBox.style.display === 'none';
+      filterHelpBox.style.display = show ? 'block' : 'none';
+      filterHelpBtn.style.color = show ? '#5865f2' : '#949ba4';
+      syncMouseBed();
+    });
+  }
+  filterInput.value = filterQuery;
+  filterClear.classList.toggle('visible', filterQuery.length > 0);
   renderQuickFilterChips();
   renderChannelTabs();
   scanMessages(true);
@@ -1355,6 +1539,7 @@
       observer.disconnect();
       if (scanTimer) clearTimeout(scanTimer);
       window.removeEventListener('keydown', onKeyDown, true);
+      closeRowContextMenu();
       clearChatHighlight();
       const r = document.getElementById(ROOT_ID);
       if (r) r.remove();

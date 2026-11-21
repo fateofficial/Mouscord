@@ -7,8 +7,9 @@ A small Windows app that adds a message-cleanup sidebar to the Discord desktop c
 - **Delete while you do other things:** switch to other channels, DMs, or apps while Mouscord keeps cleaning your locked channel in the background.
 - **Animated Mouse companion:** a little mouse with a physics tail and seasonal hat glides over your messages, boops them away with dissolve particles, and celebrates when finished.
 - **Find your messages fast:** indexes a whole DM or channel in the background, newest first.
-- **Filter:** `is:mine`, `age:>14d`, `age:1d-1y`, `has:link`, `has:media`, `user:name`, `/regex/`, `-word`.
-- **Delete selected or delete all:** retries on rate limits and checks with Discord afterwards that nothing was missed.
+- **Filter:** `is:mine`, `age:>14d`, `age:1d-1y`, `has:link`, `has:media`, `from:bob,alice`, `id:123456...`, `/regex/`, `-word`.
+- **Right-click message menu:** filter or exclude by exact User ID, copy User/Message ID (no Developer Mode needed), copy text, jump, or delete.
+- **Delete selected or delete all:** supports moderator cleanup in servers where you have `Manage Messages`, retries on rate limits, and verifies with Discord afterwards that nothing was missed.
 - **Human-like pacing:** a speed slider from relaxed to max, with natural jitter.
 - **Native GPU overlay:** snow, mouse, and dissolve particles render in a separate Direct3D 11 + DirectComposition window, so Discord itself doesn't slow down.
 - **Remove your own reactions:** optional toggle to strip your reactions from other people's messages during cleanup.

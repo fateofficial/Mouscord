@@ -102,6 +102,7 @@
     let MessageStore = null;
     let UserStore = null;
     let ChannelStore = null;
+    let PermissionStore = null;
     let FluxDispatcher = null;
 
     const coreWp = window.__dcCore && window.__dcCore.webpack;
@@ -109,6 +110,7 @@
       MessageStore = coreWp.findByStoreName(wpRequire.c, 'MessageStore');
       UserStore = coreWp.findByStoreName(wpRequire.c, 'UserStore');
       ChannelStore = coreWp.findByStoreName(wpRequire.c, 'ChannelStore');
+      PermissionStore = coreWp.findByStoreName(wpRequire.c, 'PermissionStore');
     }
 
     const modules = Object.values(wpRequire.c);
@@ -168,6 +170,7 @@
       MessageStore,
       UserStore,
       ChannelStore,
+      PermissionStore,
       FluxDispatcher
     };
 
@@ -231,6 +234,20 @@
       return parts[2];
     }
     return parts.length > 0 ? parts[parts.length - 1] : '';
+  }
+
+  function canManageMessages(channelId) {
+    const core = resolveInternals(false);
+    if (!core || !core.PermissionStore || !core.ChannelStore || !channelId) return false;
+    try {
+      const ch = core.ChannelStore.getChannel(String(channelId));
+      // Only guild (server) channels have MANAGE_MESSAGES (1n << 13n = 8192n); DMs never allow deleting others' messages
+      if (!ch || !ch.guild_id) return false;
+      if (typeof core.PermissionStore.can === 'function') {
+        return !!core.PermissionStore.can(8192n, ch);
+      }
+    } catch (e) {}
+    return false;
   }
 
   function getChannelInfo(channelId) {
@@ -311,7 +328,8 @@
       displaySnippet = '[Embed: ' + clean(embeds[0].title || embeds[0].description || 'card').slice(0, 60) + ']';
     }
 
-    const actionType = isEphemeral ? 'dismiss' : (isMine ? 'delete' : 'readonly');
+    const canManage = !isSystem && canManageMessages(channelId);
+    const actionType = isEphemeral ? 'dismiss' : ((isMine || canManage) ? 'delete' : 'readonly');
     const domEl = document.getElementById('chat-messages-' + channelId + '-' + msgId) ||
                   document.getElementById('chat-messages-' + msgId) ||
                   document.querySelector(`li[id$="-${msgId}"]`);

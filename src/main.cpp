@@ -242,6 +242,9 @@ static void CdpHostThread() {
             if (!g_host.running && conn.IsAlive()) {
                 conn.Eval(
                     "if(window.__dcMsgSidebar&&window.__dcMsgSidebar.destroy)window.__dcMsgSidebar.destroy();"
+                    "if(window.__dcMouseCursor&&window.__dcMouseCursor.destroy)window.__dcMouseCursor.destroy();"
+                    "if(window.__dcSnowShader&&window.__dcSnowShader.destroy)window.__dcSnowShader.destroy();"
+                    "if(window.__dcPopoutChat&&window.__dcPopoutChat.destroy)window.__dcPopoutChat.destroy();"
                     "if(window.__dcDeleteEngine&&window.__dcDeleteEngine.destroy)window.__dcDeleteEngine.destroy();"
                     "if(window.__dcFilter&&window.__dcFilter.destroy)window.__dcFilter.destroy();"
                     "if(window.__dcVfx&&window.__dcVfx.destroy)window.__dcVfx.destroy();"
@@ -381,8 +384,10 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int nCmdShow) {
     (void)nCmdShow;
     HANDLE hSingleInst = CreateMutexW(nullptr, TRUE, L"Local\\MouscordSingleInstance");
     if (hSingleInst && GetLastError() == ERROR_ALREADY_EXISTS) {
-        CloseHandle(hSingleInst);
-        return 0;
+        if (HWND hExisting = FindWindowW(L"DiscordSidebarHost", nullptr)) {
+            PostMessageW(hExisting, WM_CLOSE, 0, 0);
+        }
+        WaitForSingleObject(hSingleInst, 3000);
     }
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
