@@ -81,4 +81,6 @@ tests/                    Node unit tests
 
 ## Support
 
-If Mouscord saved you some time, you can leave a tip on [Ko-fi](https://ko-fi.com/fateofficial187).
+If Mouscord saved you some time, you can buy me a Monster (or a few) on [Ko-fi](https://ko-fi.com/fateofficial187).
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/fateofficial187)
